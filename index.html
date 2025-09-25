@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Cost Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            font-weight: 300;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .display {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 25px 0;
+        }
+
+        .timer {
+            font-size: 3rem;
+            font-weight: 300;
+            color: #333;
+            margin-bottom: 15px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .cost {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #e74c3c;
+            margin-bottom: 10px;
+        }
+
+        .rate-display {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 80px;
+        }
+
+        .play-btn {
+            background: #27ae60;
+            color: white;
+        }
+
+        .play-btn:hover {
+            background: #229954;
+        }
+
+        .pause-btn {
+            background: #f39c12;
+            color: white;
+        }
+
+        .pause-btn:hover {
+            background: #e67e22;
+        }
+
+        .reset-btn {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .reset-btn:hover {
+            background: #c0392b;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .settings {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .milestone-notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #27ae60;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(39, 174, 96, 0.3);
+            animation: slideInBounce 0.5s ease-out;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            display: none;
+        }
+
+        .milestone-notification.show {
+            opacity: 1;
+            pointer-events: auto;
+            display: block;
+        }
+
+        @keyframes slideInBounce {
+            0% {
+                transform: translateX(-50%) translateY(-100px) scale(0.8);
+                opacity: 0;
+            }
+            60% {
+                transform: translateX(-50%) translateY(5px) scale(1.1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(-50%) translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="milestone-notification" id="milestoneNotification">
+        🎉 Milestone reached: $<span id="milestoneAmount">0</span>!
+    </div>
+
+    <div class="container">
+        <h1>Meeting Cost Calculator</h1>
+
+        <div class="settings">
+            <div class="input-group">
+                <label for="people">Number of People:</label>
+                <input type="number" id="people" min="1" value="5">
+            </div>
+
+            <div class="input-group">
+                <label for="hourlyRate">Cost per Person per Hour ($):</label>
+                <input type="number" id="hourlyRate" min="0" step="0.01" value="50.00">
+            </div>
+        </div>
+
+        <div class="display">
+            <div class="timer" id="timer">00:00:00</div>
+            <div class="cost" id="cost">$0.00</div>
+            <div class="rate-display" id="rateDisplay">0 people × $0.00/hr = $0.00/hr total</div>
+        </div>
+
+        <div class="controls">
+            <button class="play-btn" id="playBtn">Start</button>
+            <button class="pause-btn" id="pauseBtn" disabled>Pause</button>
+            <button class="reset-btn" id="resetBtn">Reset</button>
+        </div>
+    </div>
+
+    <script>
+        let startTime = 0;
+        let elapsedTime = 0;
+        let timerInterval = null;
+        let isRunning = false;
+        let lastMilestone = 0;
+
+        const timerDisplay = document.getElementById('timer');
+        const costDisplay = document.getElementById('cost');
+        const rateDisplay = document.getElementById('rateDisplay');
+        const playBtn = document.getElementById('playBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const peopleInput = document.getElementById('people');
+        const hourlyRateInput = document.getElementById('hourlyRate');
+        const milestoneNotification = document.getElementById('milestoneNotification');
+        const milestoneAmount = document.getElementById('milestoneAmount');
+
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function calculateCost(timeInSeconds) {
+            const people = parseInt(peopleInput.value) || 0;
+            const hourlyRate = parseFloat(hourlyRateInput.value) || 0;
+            const hours = timeInSeconds / 3600;
+            return people * hourlyRate * hours;
+        }
+
+        function playDing() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.1);
+
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
+        function showMilestoneNotification(amount) {
+            milestoneAmount.textContent = amount.toLocaleString();
+            milestoneNotification.classList.add('show');
+
+            setTimeout(() => {
+                milestoneNotification.classList.remove('show');
+            }, 10000);
+        }
+
+        function checkMilestone(cost) {
+            if (cost >= 100) {
+                const currentMilestone = Math.floor(Math.log10(cost));
+                const milestoneValue = Math.pow(10, currentMilestone);
+
+                if (milestoneValue > lastMilestone && cost >= milestoneValue) {
+                    lastMilestone = milestoneValue;
+                    playDing();
+                    showMilestoneNotification(milestoneValue);
+                }
+            }
+        }
+
+        function updateDisplay() {
+            const currentTime = isRunning ? Math.floor((Date.now() - startTime + elapsedTime) / 1000) : Math.floor(elapsedTime / 1000);
+            const cost = calculateCost(currentTime);
+
+            timerDisplay.textContent = formatTime(currentTime);
+            costDisplay.textContent = `$${cost.toFixed(2)}`;
+
+            const people = parseInt(peopleInput.value) || 0;
+            const hourlyRate = parseFloat(hourlyRateInput.value) || 0;
+            const totalHourlyRate = people * hourlyRate;
+            rateDisplay.textContent = `${people} people × $${hourlyRate.toFixed(2)}/hr = $${totalHourlyRate.toFixed(2)}/hr total`;
+
+            if (isRunning) {
+                checkMilestone(cost);
+            }
+        }
+
+        function startTimer() {
+            if (!isRunning) {
+                startTime = Date.now();
+                isRunning = true;
+                timerInterval = setInterval(updateDisplay, 1000);
+                playBtn.disabled = true;
+                pauseBtn.disabled = false;
+                playBtn.textContent = 'Start';
+            }
+        }
+
+        function pauseTimer() {
+            if (isRunning) {
+                elapsedTime += Date.now() - startTime;
+                isRunning = false;
+                clearInterval(timerInterval);
+                playBtn.disabled = false;
+                pauseBtn.disabled = true;
+                playBtn.textContent = 'Resume';
+            }
+        }
+
+        function resetTimer() {
+            elapsedTime = 0;
+            isRunning = false;
+            lastMilestone = 0;
+            clearInterval(timerInterval);
+            playBtn.disabled = false;
+            pauseBtn.disabled = true;
+            playBtn.textContent = 'Start';
+            milestoneNotification.classList.remove('show');
+            updateDisplay();
+        }
+
+        playBtn.addEventListener('click', startTimer);
+        pauseBtn.addEventListener('click', pauseTimer);
+        resetBtn.addEventListener('click', resetTimer);
+
+        peopleInput.addEventListener('input', updateDisplay);
+        hourlyRateInput.addEventListener('input', updateDisplay);
+
+        updateDisplay();
+    </script>
+</body>
+</html>
