@@ -20,6 +20,7 @@ This is a simple meeting cost calculator microsite built as a single HTML file w
 - **Cost calculator**: Real-time calculation updating every second
 - **Input controls**: Number of people and hourly rate per person
 - **Display components**: Timer display (HH:MM:SS), cost display, and rate summary
+- **Milestone notifications**: Audio and visual alerts at cost milestones ($100, $1000, $10000, etc.)
 
 ## Development
 
@@ -30,6 +31,7 @@ The application state is managed through global JavaScript variables:
 - `elapsedTime`: Total accumulated time from previous sessions
 - `isRunning`: Current timer state
 - `timerInterval`: Reference to the setInterval timer
+- `lastMilestone`: Tracks the highest milestone reached to prevent duplicate notifications
 
 ## Testing
 
@@ -38,3 +40,5 @@ Manual testing can be done by:
 2. Verifying timer functionality (start/pause/reset)
 3. Checking cost calculations with different people counts and rates
 4. Ensuring the display updates correctly every second
+5. Testing milestone notifications by setting high hourly rates to quickly reach $100+ thresholds
+6. Verifying audio ding plays and visual notification appears/disappears after 10 seconds
